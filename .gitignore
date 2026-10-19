@@ -1,0 +1,25 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Archivos generados por .NET
+bin/
+obj/
+[Bb]uild/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Configuración local y secretos
+.env
+.env.*
+!.env.example
+appsettings.Local.json
+secrets.json

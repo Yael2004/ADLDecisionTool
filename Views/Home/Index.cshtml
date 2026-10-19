@@ -1,0 +1,955 @@
+﻿@model ADLDecisionTool.Models.DecisionViewModel
+
+@{
+    var hasSubmitted = Context.Request.Method == "POST";
+}
+
+<div class="page-container">
+    <header class="hero-header">
+        <div class="hero-content">
+            <span class="eyebrow">SISTEMA DE EVALUACIÓN</span>
+            <h1>Encuentra el ADL ideal para tu arquitectura</h1>
+            <p class="hero-description">
+                Explora y compara lenguajes de descripción de arquitectura
+                de software según las necesidades específicas de tu sistema.
+            </p>
+        </div>
+
+        <a class="publication-card"
+           href="URL_DE_TU_ARTICULO"
+           target="_blank"
+           rel="noopener noreferrer">
+
+            <div class="publication-content">
+                <span class="publication-label">PUBLICACIÓN RELACIONADA</span>
+
+                <h2>
+                    Reported Use and Applicability of Software Architecture
+                    Description Languages: A Systematic Literature Review
+                </h2>
+
+                <span class="publication-link">
+                    Leer artículo publicado →
+                </span>
+            </div>
+        </a>
+    </header>
+
+    <main>
+
+        <section id="wizard" class="card decision-card wizard-shell @(hasSubmitted ? "is-hidden" : "")">
+
+            <div class="wizard-heading">
+                <div>
+                    <h2>Encuentra alternativas para tu sistema</h2>
+                    <p>Completa los siguientes pasos para evaluar los ADLs.</p>
+                </div>
+                <span id="wizard-step-label" class="wizard-step-label">
+                    Paso 1 de 3
+                </span>
+            </div>
+
+            <div class="wizard-progress" aria-label="Progreso de configuración">
+                <div class="wizard-progress-item is-active" data-progress="1">
+                    <span>1</span>
+                    <span>Define el sistema</span>
+                </div>
+
+                <div class="wizard-progress-line"></div>
+
+                <div class="wizard-progress-item" data-progress="2">
+                    <span>2</span>
+                    <span>Características</span>
+                </div>
+
+                <div class="wizard-progress-line"></div>
+
+                <div class="wizard-progress-item" data-progress="3">
+                    <span>3</span>
+                    <span>Resultados</span>
+                </div>
+            </div>
+
+            <form asp-action="Index" method="post" id="decision-form">
+
+                <section class="step-panel" data-step-panel="1">
+
+                    <div class="step-intro">
+                        <span class="eyebrow">PASO 1</span>
+                        <h3>¿Qué tipo de sistema estás desarrollando?</h3>
+                        <p>
+                            Selecciona el tipo de sistema y el dominio en el que se utilizará.
+                            Estos datos ayudan a identificar las alternativas candidatas.
+                        </p>
+                    </div>
+
+                    <div class="form-grid">
+
+                        <div class="form-group">
+                            <label asp-for="SystemType">Tipo de sistema</label>
+
+                            <select asp-for="SystemType">
+                                <option value="">Selecciona un tipo de sistema</option>
+
+                                @foreach (var type in Model.AvailableSystemTypes)
+                                {
+                                    <option value="@type">@type</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="Domain">Dominio de aplicación</label>
+
+                            <select asp-for="Domain">
+                                <option value="">Selecciona un dominio</option>
+
+                                @foreach (var domain in Model.AvailableDomains)
+                                {
+                                    <option value="@domain">@domain</option>
+                                }
+                            </select>
+                        </div>
+
+                    </div>
+
+                    <div class="wizard-actions wizard-actions-end">
+                        <button type="button"
+                                class="primary-button"
+                                onclick="goToStep(2)">
+                            Continuar a características →
+                        </button>
+                    </div>
+
+                </section>
+
+                <section class="step-panel" data-step-panel="2" hidden>
+
+                    <div class="step-intro">
+                        <span class="eyebrow">PASO 2</span>
+                        <h3>¿Qué necesita cumplir tu sistema?</h3>
+                        <p>
+                            Selecciona las características relevantes. Puedes consultar
+                            la descripción de cada una antes de elegirla.
+                        </p>
+                    </div>
+
+                    
+                    <div class="characteristics-heading">
+                        <div>
+                            <h4>Características del sistema</h4>
+                            <p>Busca y selecciona las características relevantes para tu sistema.</p>
+                        </div>
+
+                        <span id="selected-characteristics-count" class="selected-count">
+                            0 seleccionadas
+                        </span>
+                    </div>
+
+                    <div class="characteristics-toolbar">
+                        <div class="characteristics-search">
+                            <span aria-hidden="true">⌕</span>
+                            <input type="search"
+                                   id="characteristic-search"
+                                   placeholder="Buscar característica..."
+                                   aria-label="Buscar características" />
+                        </div>
+
+                        <div class="characteristics-filters" role="group"
+                            aria-label="Filtrar características">
+                            <button type="button"
+                                    class="characteristic-filter active"
+                                    data-filter="all">
+                                Todas
+                            </button>
+                            <button type="button"
+                                    class="characteristic-filter"
+                                    data-filter="selected">
+                                Seleccionadas
+                            </button>
+                            <button type="button"
+                                    class="characteristic-filter"
+                                    data-filter="unselected">
+                                No seleccionadas
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="characteristics-container" id="characteristics-list">
+
+                    @{
+                        var characteristicGroups = Model.AvailableCharacteristics
+                            .GroupBy(c => c.Category)
+                            .OrderBy(g => g.Key)
+                            .ToList();
+                    }
+
+                    <div class="characteristic-tabs" id="characteristic-tabs">
+                        <div class="characteristic-tab-list"
+                            role="tablist"
+                            aria-label="Categorías de características">
+
+                            @for (var i = 0; i < characteristicGroups.Count; i++)
+                            {
+                                var group = characteristicGroups[i];
+                                var tabId = $"characteristic-tab-{i}";
+                                var panelId = $"characteristic-panel-{i}";
+
+                                <button type="button"
+                                        class="characteristic-tab @(i == 0 ? "active" : "")"
+                                        id="@tabId"
+                                        role="tab"
+                                        aria-controls="@panelId"
+                                        aria-selected="@(i == 0 ? "true" : "false")"
+                                        data-category-tab="@i">
+                                    <span>@group.Key</span>
+                                    <span class="category-count">@group.Count()</span>
+                                </button>
+                            }
+                        </div>
+
+                        @for (var i = 0; i < characteristicGroups.Count; i++)
+                        {
+                            var group = characteristicGroups[i];
+                            var tabId = $"characteristic-tab-{i}";
+                            var panelId = $"characteristic-panel-{i}";
+
+                            <section class="characteristic-tab-panel"
+                                    id="@panelId"
+                                    role="tabpanel"
+                                    aria-labelledby="@tabId"
+                                    data-category-panel="@i"
+                                    @(i == 0 ? null : "hidden")>
+
+                                <div class="characteristics-grid">
+                                    @foreach (var characteristic in group)
+                                    {
+                                        <div class="characteristic-option"
+                                            data-characteristic="@characteristic.Name">
+
+                                            <label class="characteristic-checkbox">
+                                                <input type="checkbox"
+                                                    name="Characteristics"
+                                                    value="@characteristic.Name"
+                                                    @(Model.Characteristics.Contains(characteristic.Name)
+                                                        ? "checked"
+                                                        : "") />
+
+                                                <span>@characteristic.Name</span>
+                                            </label>
+
+                                            <button type="button"
+                                                    class="info-button"
+                                                    data-name="@characteristic.Name"
+                                                    data-description="@characteristic.Description"
+                                                    aria-label="Información sobre @characteristic.Name"
+                                                    onclick="showCharacteristic(this)">
+                                                <span aria-hidden="true">ⓘ</span>
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            </section>
+                        }
+                    </div>
+
+                    <p id="characteristics-empty" class="empty-text" hidden>
+                        No se encontraron características con este filtro.
+                    </p>
+
+                    <div class="characteristics-actions">
+                        <button type="button"
+                                class="btn-clear"
+                                onclick="clearCharacteristics()">
+                            Limpiar selecciones
+                        </button>
+                    </div>
+
+                    <div class="wizard-actions">
+                        <button type="button"
+                                class="secondary-button"
+                                onclick="goToStep(1)">
+                            ← Volver
+                        </button>
+
+                        <button type="submit" class="primary-button">
+                            Evaluar ADLs <span aria-hidden="true">→</span>
+                        </button>
+                    </div>
+
+                </section>
+
+            </form>
+        </section>
+
+        @if (hasSubmitted)
+        {
+            <section id="results-step" class="results-section">
+
+                <div class="results-header">
+                    <div>
+                        <span class="eyebrow">PASO 3 · RESULTADOS</span>
+                        <h2>Alternativas para tu sistema</h2>
+                        <p>
+                            Revisa la prioridad, la coincidencia y los aspectos que conviene
+                            considerar antes de elegir un lenguaje de descripción de arquitectura.
+                        </p>
+                    </div>
+
+                    <button type="button"
+                            class="secondary-button"
+                            onclick="editSelection()">
+                        ← Modificar selección
+                    </button>
+                </div>
+
+                @if (Model.Recommendations.Count > 0)
+                {
+                    <section class="decision-summary">
+
+                        <div class="summary-header">
+                            <div>
+                                <span class="eyebrow">RESUMEN DE LA EVALUACIÓN</span>
+                                <h3>Cómo se obtuvieron estos resultados</h3>
+                                <p>@Model.Summary.RuleDescription</p>
+                            </div>
+
+                            <span class="rule-badge">@Model.Summary.Rule</span>
+                        </div>
+
+                        <div class="summary-grid">
+
+                            <div class="summary-item">
+                                <span>ADLs evaluados</span>
+                                <strong>@Model.Summary.CandidateCount</strong>
+                            </div>
+
+                            <div class="summary-item">
+                                <span>Características seleccionadas</span>
+                                <strong>@Model.Summary.SelectedCharacteristicsCount</strong>
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(Model.Summary.SystemType))
+                            {
+                                <div class="summary-item">
+                                    <span>Tipo de sistema</span>
+                                    <strong>@Model.Summary.SystemType</strong>
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(Model.Summary.Domain))
+                            {
+                                <div class="summary-item">
+                                    <span>Dominio</span>
+                                    <strong>@Model.Summary.Domain</strong>
+                                </div>
+                            }
+
+                            @if (Model.Summary.SystemType != null)
+                            {
+                                <div class="summary-item">
+                                    <span>ADLs por tipo</span>
+                                    <strong>@Model.Summary.TypeCandidateCount</strong>
+                                </div>
+                            }
+
+                            @if (Model.Summary.Domain != null)
+                            {
+                                <div class="summary-item">
+                                    <span>ADLs por dominio</span>
+                                    <strong>@Model.Summary.DomainCandidateCount</strong>
+                                </div>
+                            }
+
+                            @if (Model.Summary.SystemType != null && Model.Summary.Domain != null)
+                            {
+                                <div class="summary-item">
+                                    <span>En ambos criterios</span>
+                                    <strong>@Model.Summary.IntersectionCount</strong>
+                                </div>
+                            }
+
+                        </div>
+
+                        <div class="score-explanation">
+                            <div class="score-explanation-icon">i</div>
+                            <div>
+                                <strong>Cómo interpretar los resultados</strong>
+                                <p>
+                                    La prioridad indica si un ADL pertenece tanto al conjunto
+                                    asociado al tipo de sistema como al dominio seleccionado.
+                                    El porcentaje expresa la proporción de características
+                                    seleccionadas que coinciden con las registradas para el ADL.
+                                    Ambos indicadores ayudan a comparar alternativas, pero no
+                                    representan una garantía de idoneidad para cualquier proyecto.
+                                </p>
+                            </div>
+                        </div>
+
+                    </section>
+
+                    <div class="ranking-header">
+                        <div>
+                            <span class="eyebrow">COMPARACIÓN</span>
+                            <h3>ADLs evaluados</h3>
+                        </div>
+
+                        <span class="ranking-hint">
+                            La información principal está disponible en cada alternativa.
+                        </span>
+                    </div>
+
+                    <div class="recommendations">
+
+                        @for (int i = 0; i < Model.Recommendations.Count; i++)
+                        {
+                            var recommendation = Model.Recommendations[i];
+                            var scorePercentage = (int)Math.Round(recommendation.Score * 100);
+
+                            <article class="recommendation-card @(recommendation.IsIntersection ? "intersection-card" : "")">
+
+                                <div class="recommendation-summary">
+                                    <div class="recommendation-rank">
+                                        <span>@(i + 1)</span>
+                                    </div>
+
+                                    <div class="recommendation-main">
+                                        <div class="recommendation-title">
+                                            <h3>@recommendation.ADL.Name</h3>
+
+                                            @if (recommendation.IsIntersection)
+                                            {
+                                                <span class="candidate-priority">
+                                                    <span aria-hidden="true">★</span>
+                                                    Coincidencia doble
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="candidate-origin-single">
+                                                    Coincidencia por un criterio
+                                                </span>
+                                            }
+                                        </div>
+
+                                        <div class="recommendation-match">
+                                            <div class="score-label">
+                                                <span>Características coincidentes</span>
+                                                <strong>@recommendation.Score.ToString("P0")</strong>
+                                            </div>
+
+                                            <div class="score-track"
+                                                role="progressbar"
+                                                aria-label="Porcentaje de coincidencia"
+                                                aria-valuemin="0"
+                                                aria-valuemax="100"
+                                                aria-valuenow="@scorePercentage">
+                                                <div class="score-fill"
+                                                    style="width: @(scorePercentage)%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="recommendation-content">
+
+                                    <div class="recommendation-rationale">
+                                        <h4>¿Por qué aparece este ADL?</h4>
+
+                                        @if (recommendation.IsIntersection)
+                                        {
+                                            <p>
+                                                Este ADL forma parte de los candidatos asociados tanto al tipo
+                                                de sistema seleccionado como al dominio elegido. Por ello,
+                                                recibe prioridad en el ranking frente a los candidatos que
+                                                no cumplen ambos criterios.
+                                            </p>
+                                        }
+                                        else
+                                        {
+                                            <p>
+                                                Este ADL forma parte de los candidatos asociados a uno de los
+                                                criterios de contexto seleccionados: el tipo de sistema o el
+                                                dominio. No pertenece a ambos grupos simultáneamente, por lo
+                                                que no recibe la prioridad adicional de la intersección.
+                                            </p>
+                                        }
+
+                                        @if (Model.Characteristics != null && Model.Characteristics.Count > 0)
+                                        {
+                                            <div class="rationale-match">
+                                                <strong>
+                                                    @((recommendation.MatchingCharacteristics?.Count ?? 0))
+                                                    de @Model.Characteristics.Count características seleccionadas
+                                                </strong>
+                                                <span>
+                                                    coinciden con las características registradas para este ADL.
+                                                    Esta coincidencia contribuye a su puntuación.
+                                                </span>
+                                            </div>
+                                        }
+                                    </div>
+
+                                    <div class="recommendation-details recommendation-details-visible">
+
+                                        @if (recommendation.IsIntersection)
+                                        {
+                                            <p class="priority-message">
+                                                Este ADL pertenece tanto al conjunto del tipo de sistema
+                                                como al del dominio seleccionados, por lo que tiene
+                                                prioridad según la regla aplicada.
+                                            </p>
+                                        }
+
+                                        <section class="recommendation-section">
+                                            <h4>Características coincidentes</h4>
+
+                                            @if (recommendation.MatchingCharacteristics.Count > 0)
+                                            {
+                                                <div class="tags">
+                                                    @foreach (var characteristic in recommendation.MatchingCharacteristics)
+                                                    {
+                                                        <span class="tag">@characteristic</span>
+                                                    }
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <p class="empty-text">
+                                                    No hay características coincidentes registradas.
+                                                </p>
+                                            }
+                                        </section>
+
+                                        <div class="info-grid">
+
+                                            <section class="info-block">
+                                                <h4>Beneficios documentados</h4>
+
+                                                @if (recommendation.ADL.Benefits.Count > 0)
+                                                {
+                                                    <ul>
+                                                        @foreach (var benefit in recommendation.ADL.Benefits)
+                                                        {
+                                                            <li>@benefit</li>
+                                                        }
+                                                    </ul>
+                                                }
+                                                else
+                                                {
+                                                    <p class="empty-text">No especificado.</p>
+                                                }
+                                            </section>
+
+                                            <section class="info-block">
+                                                <h4>Limitaciones documentadas</h4>
+
+                                                @if (recommendation.ADL.Limitations.Count > 0)
+                                                {
+                                                    <ul>
+                                                        @foreach (var limitation in recommendation.ADL.Limitations)
+                                                        {
+                                                            <li>@limitation</li>
+                                                        }
+                                                    </ul>
+                                                }
+                                                else
+                                                {
+                                                    <p class="empty-text">No especificado.</p>
+                                                }
+                                            </section>
+
+                                            <section class="info-block">
+                                                <h4>Tipos de sistema asociados</h4>
+
+                                                @if (recommendation.ADL.SystemTypes.Count > 0)
+                                                {
+                                                    <ul>
+                                                        @foreach (var type in recommendation.ADL.SystemTypes)
+                                                        {
+                                                            <li>@type</li>
+                                                        }
+                                                    </ul>
+                                                }
+                                                else
+                                                {
+                                                    <p class="empty-text">No especificado.</p>
+                                                }
+                                            </section>
+
+                                            <section class="info-block">
+                                                <h4>Dominios asociados</h4>
+
+                                                @if (recommendation.ADL.Domains.Count > 0)
+                                                {
+                                                    <ul>
+                                                        @foreach (var domain in recommendation.ADL.Domains)
+                                                        {
+                                                            <li>@domain</li>
+                                                        }
+                                                    </ul>
+                                                }
+                                                else
+                                                {
+                                                    <p class="empty-text">No especificado.</p>
+                                                }
+                                            </section>
+
+                                            <section class="info-block tools-block">
+                                                <h4>Herramientas disponibles</h4>
+
+                                                @if (recommendation.ADL.Tools.Count > 0)
+                                                {
+                                                    <ul class="tools-list">
+                                                        @foreach (var tool in recommendation.ADL.Tools)
+                                                        {
+                                                            <li>@tool</li>
+                                                        }
+                                                    </ul>
+                                                }
+                                                else
+                                                {
+                                                    <p class="empty-text">No especificado.</p>
+                                                }
+                                            </section>
+
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </article>
+                        }
+
+                    </div>
+                }
+                else
+                {
+                    <div class="no-results">
+                        <h3>No se encontraron ADLs candidatos</h3>
+                        <p>
+                            Con los criterios actuales no hay alternativas para mostrar.
+                            Puedes modificar el tipo de sistema, el dominio o las características
+                            y volver a evaluar.
+                        </p>
+                        <button type="button"
+                                class="primary-button"
+                                onclick="editSelection()">
+                            Modificar selección
+                        </button>
+                    </div>
+                }
+
+            </section>
+        }
+
+        <div id="characteristic-modal"
+             class="modal-overlay"
+             onclick="closeCharacteristic(event)"
+             aria-hidden="true">
+
+            <div class="characteristic-modal"
+                 role="dialog"
+                 aria-modal="true"
+                 aria-labelledby="modal-characteristic-name"
+                 onclick="event.stopPropagation()">
+
+                <button type="button"
+                        class="modal-close"
+                        aria-label="Cerrar"
+                        onclick="closeCharacteristic()">
+                    ×
+                </button>
+
+                <span class="eyebrow">CARACTERÍSTICA</span>
+                <h2 id="modal-characteristic-name"></h2>
+                <p id="modal-characteristic-description"></p>
+
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<script>
+
+let currentWizardStep = 1;
+let characteristicFilter = "all";
+
+function goToStep(step) {
+    if (step < 1 || step > 2) return;
+
+    currentWizardStep = step;
+
+    document.querySelectorAll("[data-step-panel]").forEach(panel => {
+        panel.hidden = Number(panel.dataset.stepPanel) !== step;
+    });
+
+    const wizardShell = document.getElementById("wizard");
+    const resultsStep = document.getElementById("results-step");
+
+    if (wizardShell) {
+        wizardShell.classList.remove("is-hidden");
+    }
+
+    if (resultsStep) {
+        resultsStep.hidden = true;
+    }
+
+    document.querySelectorAll("[data-progress]").forEach(item => {
+        const itemStep = Number(item.dataset.progress);
+
+        item.classList.toggle("is-active", itemStep === step);
+        item.classList.toggle("is-complete", itemStep < step);
+    });
+
+    const label = document.getElementById("wizard-step-label");
+
+    if (label) {
+        label.textContent = `Paso ${step} de 3`;
+    }
+
+    updateSelectedCount();
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+}
+
+function editSelection() {
+    const wizard = document.getElementById("wizard");
+    const results = document.getElementById("results-step");
+
+    if (wizard) {
+        wizard.classList.remove("is-hidden");
+    }
+
+    if (results) {
+        results.hidden = true;
+    }
+
+    goToStep(1);
+}
+
+function clearCharacteristics() {
+    document.querySelectorAll(
+        'input[name="Characteristics"]'
+    ).forEach(input => {
+        input.checked = false;
+    });
+
+    updateSelectedCount();
+}
+
+
+function filterCharacteristics() {
+    const search = (
+        document.getElementById("characteristic-search")?.value || ""
+    ).trim().toLocaleLowerCase();
+
+    let visibleCount = 0;
+
+    document.querySelectorAll(".characteristic-option").forEach(option => {
+        const checkbox = option.querySelector(
+            'input[name="Characteristics"]'
+        );
+
+        const name = (
+            option.dataset.characteristic || ""
+        ).toLocaleLowerCase();
+
+        const matchesSearch = name.includes(search);
+
+        const matchesFilter =
+            characteristicFilter === "all" ||
+            (characteristicFilter === "selected" && checkbox.checked) ||
+            (characteristicFilter === "unselected" && !checkbox.checked);
+
+        option.hidden = !(matchesSearch && matchesFilter);
+
+        if (!option.hidden) {
+            visibleCount++;
+        }
+    });
+
+    document.querySelectorAll(".characteristic-tab").forEach(tab => {
+        const panelId = tab.getAttribute("aria-controls");
+        const panel = document.getElementById(panelId);
+
+        const visibleOptions = panel?.querySelectorAll(
+            ".characteristic-option:not([hidden])"
+        ).length ?? 0;
+
+        tab.hidden = visibleOptions === 0;
+    });
+
+    const emptyMessage = document.getElementById("characteristics-empty");
+
+    if (emptyMessage) {
+        emptyMessage.hidden = visibleCount !== 0;
+    }
+
+    const activeTab = document.querySelector(
+        ".characteristic-tab.active:not([hidden])"
+    );
+
+    if (!activeTab) {
+        const firstVisibleTab = document.querySelector(
+            ".characteristic-tab:not([hidden])"
+        );
+
+        if (firstVisibleTab) {
+            firstVisibleTab.click();
+        }
+    }
+}
+
+
+function updateSelectedCount() {
+    const counter = document.getElementById(
+        "selected-characteristics-count"
+    );
+
+    const selected = document.querySelectorAll(
+        'input[name="Characteristics"]:checked'
+    ).length;
+
+    if (counter) {
+        counter.textContent =
+            `${selected} ${selected === 1 ? "seleccionada" : "seleccionadas"}`;
+    }
+
+    filterCharacteristics();
+}
+
+function showCharacteristic(button) {
+    const modal = document.getElementById("characteristic-modal");
+
+    if (!modal) return;
+
+    document.getElementById("modal-characteristic-name").textContent =
+        button.dataset.name || "";
+
+    document.getElementById("modal-characteristic-description").textContent =
+        button.dataset.description || "No hay una descripción disponible.";
+
+    modal.classList.add("show");
+    modal.setAttribute("aria-hidden", "false");
+
+    modal.querySelector(".modal-close")?.focus();
+}
+
+function closeCharacteristic(event) {
+    if (event && event.target !== event.currentTarget) {
+        return;
+    }
+
+    const modal = document.getElementById("characteristic-modal");
+
+    if (modal) {
+        modal.classList.remove("show");
+        modal.setAttribute("aria-hidden", "true");
+    }
+}
+
+function initializeCharacteristicTabs() {
+    const tabs = document.querySelectorAll("[data-category-tab]");
+    const panels = document.querySelectorAll("[data-category-panel]");
+
+    function activateTab(index) {
+        tabs.forEach(tab => {
+            const active = tab.dataset.categoryTab === String(index);
+
+            tab.classList.toggle("active", active);
+            tab.setAttribute("aria-selected", String(active));
+            tab.tabIndex = active ? 0 : -1;
+        });
+
+        panels.forEach(panel => {
+            panel.hidden = panel.dataset.categoryPanel !== String(index);
+        });
+    }
+
+    tabs.forEach(tab => {
+        tab.addEventListener("click", () => {
+            activateTab(tab.dataset.categoryTab);
+        });
+
+        tab.addEventListener("keydown", event => {
+            if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") {
+                return;
+            }
+
+            event.preventDefault();
+
+            const currentIndex = Array.from(tabs).indexOf(tab);
+            const direction = event.key === "ArrowRight" ? 1 : -1;
+            const nextIndex = (currentIndex + direction + tabs.length) % tabs.length;
+
+            tabs[nextIndex].focus();
+            activateTab(tabs[nextIndex].dataset.categoryTab);
+        });
+    });
+
+    if (tabs.length > 0) {
+        const selectedTab = Array.from(tabs).find(
+            tab => tab.getAttribute("aria-selected") === "true"
+        );
+
+        activateTab(selectedTab?.dataset.categoryTab ?? tabs[0].dataset.categoryTab);
+    }
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    @if (hasSubmitted)
+    {
+        @:document.getElementById("wizard")?.classList.add("is-hidden");
+        @:document.getElementById("results-step")?.removeAttribute("hidden");
+        @:currentWizardStep = 3;
+        @:document.querySelectorAll("[data-progress]").forEach(item => {
+        @:    const step = Number(item.dataset.progress);
+        @:    item.classList.toggle("is-active", step === 3);
+        @:    item.classList.toggle("is-complete", step < 3);
+        @:});
+        @:document.getElementById("wizard-step-label")?.replaceChildren("Paso 3 de 3");
+    }
+
+    document.querySelectorAll(
+        'input[name="Characteristics"]'
+    ).forEach(input => {
+        input.addEventListener("change", updateSelectedCount);
+    });
+
+    document.querySelectorAll(".characteristic-filter").forEach(button => {
+        button.setAttribute(
+            "aria-pressed",
+            String(button.classList.contains("active"))
+        );
+
+        button.addEventListener("click", () => {
+            characteristicFilter = button.dataset.filter;
+
+            document.querySelectorAll(".characteristic-filter").forEach(filter => {
+                const active = filter === button;
+
+                filter.classList.toggle("active", active);
+                filter.setAttribute("aria-pressed", String(active));
+            });
+
+            filterCharacteristics();
+        });
+    });
+
+    document.getElementById("characteristic-search")
+        ?.addEventListener("input", filterCharacteristics);
+
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape") {
+            closeCharacteristic();
+        }
+    });
+
+    initializeCharacteristicTabs();
+    updateSelectedCount();
+});
+</script>
